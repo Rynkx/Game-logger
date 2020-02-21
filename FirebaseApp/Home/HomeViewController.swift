@@ -125,25 +125,6 @@ UITableViewDataSource {
     }
 }
 
-
-/*
-class main_table_vc: UIViewController {
-    
-    
-    
-    
-    
-    /*
-    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        return "Secret contacts"
-    }*/
-    
-    
-    
-    
-}
-*/
-
 class postCell: UITableViewCell{
     @IBOutlet weak var name: UILabel!
     @IBOutlet weak var date: UILabel!
