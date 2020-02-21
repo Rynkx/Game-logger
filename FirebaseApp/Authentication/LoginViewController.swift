@@ -2,14 +2,15 @@
 import Foundation
 import UIKit
 import Firebase
-
+import KeychainAccess
 
 class LoginViewController:UIViewController, UITextFieldDelegate {
     
     @IBOutlet weak var emailField: UITextField!
     @IBOutlet weak var passwordField: UITextField!
     @IBOutlet weak var dismissButton: UIButton!
-
+    var firstTimeLogIn = 0
+    let keychain = Keychain(service:"as.Game-Logger")
     var continueButton:RoundedWhiteButton!
     var activityView:UIActivityIndicatorView!
     
@@ -49,7 +50,6 @@ class LoginViewController:UIViewController, UITextFieldDelegate {
         super.viewWillAppear(animated)
         emailField.becomeFirstResponder()
         NotificationCenter.default.addObserver(self, selector:#selector(keyboardWillAppear), name: NSNotification.Name.UIKeyboardWillShow, object: nil)
-        
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -57,6 +57,25 @@ class LoginViewController:UIViewController, UITextFieldDelegate {
         emailField.resignFirstResponder()
         passwordField.resignFirstResponder()
         NotificationCenter.default.removeObserver(self)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if firstTimeLogIn != 0 {
+            DispatchQueue.global().async {
+                do {
+                    let mail = try self.keychain.authenticationPrompt("Authenticate to log in")
+                        .get("mail")
+                    let password = try self.keychain.authenticationPrompt("Authenticate to log in")
+                        .get("password")
+                    self.emailField.text = mail!
+                    self.passwordField.text = password!
+                } catch let error {
+                    print(error)
+                }
+            }
+        }
+        firstTimeLogIn += 1
     }
     
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -74,7 +93,7 @@ class LoginViewController:UIViewController, UITextFieldDelegate {
      - Parameter notification: Contains the keyboardFrame info.
      */
     
-    @objc func keyboardWillAppear(notification: NSNotification){
+    @objc func keyboardWillAppear(notification: NSNotification) {
         
         let info = notification.userInfo!
         let keyboardFrame: CGRect = (info[UIKeyboardFrameEndUserInfoKey] as! NSValue).cgRectValue
@@ -82,6 +101,8 @@ class LoginViewController:UIViewController, UITextFieldDelegate {
         continueButton.center = CGPoint(x: view.center.x,
                                         y: view.frame.height - keyboardFrame.height - 16.0 - continueButton.frame.height / 2)
         activityView.center = continueButton.center
+        
+        
     }
     
     /**
@@ -139,12 +160,29 @@ class LoginViewController:UIViewController, UITextFieldDelegate {
         continueButton.setTitle("", for: .normal)
         activityView.startAnimating()
         
+        DispatchQueue.global().async {
+            do {
+                try self.keychain
+                    .accessibility(.whenPasscodeSetThisDeviceOnly,authenticationPolicy: .userPresence)
+                    .set(self.emailField.text!,key: "mail")
+            } catch let error {
+                print(error)
+            }
+            do {
+                try self.keychain
+                    .accessibility(.whenPasscodeSetThisDeviceOnly,authenticationPolicy: .userPresence)
+                    .set(self.passwordField.text!,key: "password")
+            } catch let error {
+                print(error)
+            }
+        }
+        
         Auth.auth().signIn(withEmail: email, password: pass) { user, error in
             if error == nil && user != nil {
                 self.dismiss(animated: false, completion: nil)
             } else {
                 print("Error logging in: \(error!.localizedDescription)")
-
+                
                 self.resetForm()
             }
         }
@@ -159,5 +197,5 @@ class LoginViewController:UIViewController, UITextFieldDelegate {
         continueButton.setTitle("Continue", for: .normal)
         activityView.stopAnimating()
     }
-
+    
 }

@@ -6,6 +6,7 @@ target 'FirebaseApp' do
   use_frameworks!
 
   # Pods for FirebaseApp
+  pod 'KeychainAccess'
   pod 'Firebase/Core'
   pod 'Firebase/Auth'
   pod 'Firebase/Database'
